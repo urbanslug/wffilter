@@ -20,11 +20,11 @@ fn main() {
 
     // query the index
     // are there matches in this segment?
-    let overlap: Vec<&filter::QueryResult> = text_lines.intersection(&query_lines).collect();
-    eprintln!("Number of results: {}", overlap.len());
-    eprintln!();
+    let _overlap: Vec<&filter::QueryResult> = text_lines.intersection(&query_lines).collect();
+    // eprintln!("Number of results: {}", overlap.len());
+    // eprintln!();
 
-    for x in overlap.iter() {
-        println!("{}", x);
-    }
+    // for x in overlap.iter() {
+    //   println!("{}", x);
+    //}
 }

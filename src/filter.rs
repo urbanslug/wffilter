@@ -4,6 +4,8 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 
+use crate::wflambda::wflambda;
+
 const STEP: bool = true; // Use overlapping segments
 
 #[allow(dead_code)]
@@ -170,6 +172,7 @@ impl fmt::Display for QueryResult {
     }
 }
 
+#[allow(unused_mut, unused_variables)]
 pub fn run_align(
     segments: &Vec<Segment>,
     index: &Index,
@@ -184,39 +187,21 @@ pub fn run_align(
         .iter() // we can make this concurrent
         .for_each(|i: &((usize, usize), (usize, usize))| {
             let ((tstart, tstop), (qstart, qstop)) = *i;
-            let foo = |i: &IntervalNode<PafMetadata, u32>| {
-                let res = QueryResult {
-                    line: i.metadata.line_num,
 
-                    start: i.first,
-                    stop: i.last,
-
-                    segment_qstart: qstart,
-                    segment_qstop: qstop,
-                    segment_tstart: tstart,
-                    segment_tstop: tstop,
-                };
-
-                text_lines.insert(res);
-            };
-            let baz = |i: &IntervalNode<PafMetadata, u32>| {
-                let res = QueryResult {
-                    line: i.metadata.line_num,
-
-                    start: i.first,
-                    stop: i.last,
-
-                    segment_qstart: qstart,
-                    segment_qstop: qstop,
-                    segment_tstart: tstart,
-                    segment_tstop: tstop,
-                };
-
-                query_lines.insert(res);
+            let match_lambda = |v: usize, h: usize| -> bool {
+                false
             };
 
-            target_index.query(tstart as i32, tstop as i32, foo);
-            query_index.query(qstart as i32, qstop as i32, baz);
+            let traceback_lambda = |_: (i32, i32), _: (i32, i32)| {
+                
+            };
+
+            wflambda::wf_align(
+                &match_lambda,
+                &traceback_lambda,
+                tstop-tstart,
+                qstop-qstart,
+            );
         });
 
     (text_lines, query_lines)
