@@ -10,3 +10,5 @@ edition = "2018"
 coitrees = "0.2.1"
 rayon = "1.5.1"
 wflambda-rs = { git = "https://github.com/urbanslug/wflambda-rs" }
+clap = "^2.33.0"
+chrono = "0.4"

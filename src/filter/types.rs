@@ -3,11 +3,13 @@ use std::hash::{Hash, Hasher};
 use std::fmt;
 
 // A Segment is a text, query pair of lo, hi or start, stop of the filter
+#[allow(dead_code)]
 pub type Segment = ((usize, usize), (usize, usize));
+// pub type Length = u32;
 
-
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct PafMetadata {
+    pub name: String,
     pub line_num: u32, // the line of the alignment in the PAF file
 }
 
@@ -16,7 +18,15 @@ pub struct Index {
     pub query_index: COITree<PafMetadata, u32>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub struct MatchRegion {
+    pub query_start: usize,
+    pub query_stop: usize,
+    pub text_start: usize,
+    pub text_stop: usize,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct QueryResult {
     pub line: u32, // PAF record ID the line in the PAF file from which we got this result
 
@@ -74,5 +84,37 @@ impl fmt::Display for QueryResult {
         );
 
         write!(f, "{}", aln)
+    }
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub enum Strand {
+    Forward,
+    Reverse,
+}
+
+impl fmt::Display for Strand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let x: char = if *self == Strand::Forward { '+' } else { '-' };
+        f.write_str(&x.to_string())
+    }
+}
+
+// start, stop, line number, name
+#[derive(PartialEq, Debug)]
+pub struct Interval(pub u32, pub u32, pub usize, pub String);
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum SequenceType {
+    Target,
+    Query,
+}
+
+impl fmt::Display for SequenceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            SequenceType::Target => write!(f, "Target"),
+            SequenceType::Query => write!(f, "Query"),
+        }
     }
 }
