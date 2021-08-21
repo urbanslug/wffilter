@@ -1,11 +1,10 @@
+mod cli;
 mod filter;
+mod io;
 mod paf;
 mod types;
-mod cli;
-mod io;
 
 use std::time::Instant;
-
 
 fn main() {
     let total_time = Instant::now();
@@ -61,7 +60,6 @@ fn main() {
         )
     }
 
-
     // ------------
     //     Filter
     // ------------
@@ -78,7 +76,6 @@ fn main() {
             now.elapsed().as_millis() as f64 / 1000.0
         )
     }
-
 
     // generate segments
     // config
@@ -111,5 +108,4 @@ fn main() {
             total_time.elapsed().as_millis() as f64 / 1000.0
         )
     }
-    
 }

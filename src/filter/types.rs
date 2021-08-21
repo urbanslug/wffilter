@@ -1,6 +1,6 @@
-use coitrees::{COITree};
-use std::hash::{Hash, Hasher};
+use coitrees::COITree;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 // A Segment is a text, query pair of lo, hi or start, stop of the filter
 #[allow(dead_code)]

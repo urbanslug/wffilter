@@ -2,8 +2,8 @@ use coitrees;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-use crate::paf;
 use super::types;
+use crate::paf;
 
 // TODO: account for strand & stop
 fn compute_match_intervals(
@@ -149,7 +149,8 @@ mod tests {
                 "no_name",
                 0,
             );
-            let intervals: Vec<types::Interval> = vec![types::Interval(0, 330243, 0, String::from("no_name"))];
+            let intervals: Vec<types::Interval> =
+                vec![types::Interval(0, 330243, 0, String::from("no_name"))];
             assert_eq!(intervals, intervals_computed);
         }
 
@@ -167,7 +168,6 @@ mod tests {
             );
             let intervals: Vec<types::Interval> = vec![];
             assert_eq!(intervals, intervals_computed);
-
         }
 
         #[ignore]
@@ -207,7 +207,6 @@ mod tests {
     mod index {
         use super::*;
 
-
         #[test]
         fn test_index_paf() {
             static TEST_PAF_STRING: &str = "\
@@ -216,9 +215,9 @@ mod tests {
             qry\t329347\t41052\t324759\t+\ttgt\t283680\t0\t283680\t283613\t283736\t0\tNM:i:123\tms:i:566760\tAS:i:566760\tnn:i:0\ttp:A:S\tcm:i:53397\ts1:i:282348\tde:f:0.0003\trl:i:2765\tcg:Z:15M1I158M1I24M1I169M1I1147M1I24M1I851M1I13M1I3900M1D25M1I874M4I10847M3D4400M1I1494M1D4041M1I8577M14I1340M2D21138M2I7776M6D3563M2I83120M10D5541M2D27729M1I2M13I49698M1I5030M2I17541M1D22531M1I187M1D458M1D80M1I75M1I266M1I48M1I269M1I460M1D240M
 ";
             let alignments: paf::PAF = paf::PAF::from_str(TEST_PAF_STRING);
-            let index =  index_paf_matches(&alignments);
-            let query_index =  index.query_index;
-            let target_index =  index.target_index;
+            let index = index_paf_matches(&alignments);
+            let query_index = index.query_index;
+            let target_index = index.target_index;
 
             // should apply to all of them
             assert_eq!(38, query_index.query_count(0, 330_243));

@@ -30,24 +30,24 @@ A PAF file may optionally contain SAM-like typed key-value pairs at the end of
 each line.
 */
 
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt;
 use std::str;
 use std::str::FromStr;
-use std::collections::HashMap;
-use std::collections::HashSet;
 
-use crate::io;
 use crate::filter::types;
+use crate::io;
 
 // A struct over a single line of a PAF file (a single alignment)
 #[derive(PartialEq, Debug)]
 pub struct PafAlignment {
-    pub query: String,             // Query sequence name
+    pub query: String,         // Query sequence name
     query_length: u32,         // Query sequence length
     pub query_start: u32,      // Query start (0-based; BED-like; closed)
     pub query_end: u32,        // Query end (0-based; BED-like; open)
     pub strand: types::Strand, // Relative strand: "+" or "-"
-    pub target: String,            // target sequence name
+    pub target: String,        // target sequence name
     target_length: u32,        // Target sequence length
     pub target_start: u32,     // Target start on original strand (0-based)
     pub target_end: u32,       // Target end on original strand (0-based)
@@ -180,7 +180,10 @@ impl PAF {
 
         let metadata = Self::populate_metadata(&alignments);
 
-        PAF { alignments, metadata }
+        PAF {
+            alignments,
+            metadata,
+        }
     }
 
     // A string of alignment lines seperated by newlines
@@ -194,14 +197,27 @@ impl PAF {
 
         let metadata = Self::populate_metadata(&alignments);
 
-        PAF { alignments, metadata }
+        PAF {
+            alignments,
+            metadata,
+        }
     }
 
     fn populate_metadata(alignments: &Vec<PafAlignment>) -> PafLookup {
         let mut lookup: PafLookup = HashMap::new();
         for alignment in alignments {
-            lookup.insert(alignment.query.clone(), PafMetadata {length: alignment.query_length});
-            lookup.insert(alignment.target.clone(),  PafMetadata {length: alignment.target_length});
+            lookup.insert(
+                alignment.query.clone(),
+                PafMetadata {
+                    length: alignment.query_length,
+                },
+            );
+            lookup.insert(
+                alignment.target.clone(),
+                PafMetadata {
+                    length: alignment.target_length,
+                },
+            );
         }
 
         lookup
@@ -271,7 +287,10 @@ mod tests {
         let paf = PAF::from_str(TEST_PAF_STRING);
         let mut unique_alignments: HashSet<AlignmentPair> = HashSet::new();
 
-        unique_alignments.insert(AlignmentPair {target_name: String::from("tgt"), query_name: String::from("qry")});
+        unique_alignments.insert(AlignmentPair {
+            target_name: String::from("tgt"),
+            query_name: String::from("qry"),
+        });
 
         assert_eq!(paf.get_unique_alignments(), unique_alignments);
     }

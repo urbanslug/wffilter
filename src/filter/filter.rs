@@ -1,13 +1,11 @@
 use coitrees::{COITree, IntervalNode};
-use std::collections::HashSet;
 use rayon::prelude::*;
+use std::collections::HashSet;
 use wflambda_rs as wflambda;
 
 use super::types::*;
 use crate::paf;
 use crate::types::AppConfig;
-
-
 
 pub fn generate_segments(tlen: usize, qlen: usize, config: &AppConfig) -> Vec<Segment> {
     let segment_length: usize = config.segment_length;
@@ -39,7 +37,7 @@ pub fn generate_segments(tlen: usize, qlen: usize, config: &AppConfig) -> Vec<Se
 // TODO: remove
 /*
 pub fn _build_index() -> Index {
-    
+
     ---
     PAF
     ---
@@ -67,9 +65,9 @@ pub fn _build_index() -> Index {
     paf row 2
     36 46
     48 53
-    
 
-    
+
+
     let query_interval_nodes: Vec<IntervalNode<PafMetadata, u32>> = vec![
         IntervalNode::new(1, 5, PafMetadata { line_num: 1 }),
         IntervalNode::new(6, 9, PafMetadata { line_num: 1 }),
@@ -91,14 +89,16 @@ pub fn _build_index() -> Index {
 }
 */
 #[allow(unused_mut, unused_variables)]
-pub fn _run_align(segments: &Vec<Segment>, index: &Index) -> (HashSet<QueryResult>, HashSet<QueryResult>) {
+pub fn _run_align(
+    segments: &Vec<Segment>,
+    index: &Index,
+) -> (HashSet<QueryResult>, HashSet<QueryResult>) {
     let query_index: &COITree<PafMetadata, u32> = &index.query_index;
     let target_index: &COITree<PafMetadata, u32> = &index.target_index;
 
     // TODO: remove
     let mut query_lines: HashSet<QueryResult> = HashSet::new();
     let mut text_lines: HashSet<QueryResult> = HashSet::new();
-
 
     // The regions in which the global alignment passed through
     let mut overlaps: HashSet<QueryResult> = HashSet::new();
@@ -166,12 +166,13 @@ pub fn _run_align(segments: &Vec<Segment>, index: &Index) -> (HashSet<QueryResul
             // was there a match or not?
 
             // TODO: use some kind of fold
-            let intersect = prelim_text_lines.intersection(&prelim_query_lines)
+            let intersect = prelim_text_lines
+                .intersection(&prelim_query_lines)
                 .map(|x: &QueryResult| {
                     let x = x.clone();
                     overlaps.insert(x);
                     foobar.insert(MatchRegion {
-                        query_start: x.segment_qstart as usize ,
+                        query_start: x.segment_qstart as usize,
                         query_stop: x.segment_qstop as usize,
                         text_start: x.segment_tstop as usize,
                         text_stop: x.segment_tstop as usize,
@@ -185,16 +186,17 @@ pub fn _run_align(segments: &Vec<Segment>, index: &Index) -> (HashSet<QueryResul
             !intersect.is_empty()
         };
 
-        let mut traceback_lambda = |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| {
-            let region = MatchRegion {
-                query_start: q_start as usize,
-                query_stop: q_stop as usize,
-                text_start: t_start as usize,
-                text_stop: t_stop as usize,
-            };
+        let mut traceback_lambda =
+            |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| {
+                let region = MatchRegion {
+                    query_start: q_start as usize,
+                    query_stop: q_stop as usize,
+                    text_start: t_start as usize,
+                    text_stop: t_stop as usize,
+                };
 
-            matching_regions.push(region);
-        };
+                matching_regions.push(region);
+            };
 
         let wflambda_config = wflambda::Config {
             adapt: false,
@@ -214,17 +216,18 @@ pub fn _run_align(segments: &Vec<Segment>, index: &Index) -> (HashSet<QueryResul
         );
     }
 
-    let filtered: Vec<&MatchRegion> = matching_regions.iter().filter(|x| foobar.contains(x)).collect();
+    let filtered: Vec<&MatchRegion> = matching_regions
+        .iter()
+        .filter(|x| foobar.contains(x))
+        .collect();
 
     // filtered.iter().for_each(|x| eprintln!("{:?}", x));
     matching_regions.iter().for_each(|x| eprintln!("{:?}", x));
     eprintln!("---------------------");
     foobar.iter().for_each(|x| eprintln!("{:?}", x));
 
-
     (text_lines, query_lines)
 }
-
 
 pub fn filter(_index: &Index, paf: &paf::PAF, config: &AppConfig) {
     let alignment_pairs: HashSet<paf::AlignmentPair> = paf.get_unique_alignments();
@@ -242,6 +245,6 @@ pub fn filter(_index: &Index, paf: &paf::PAF, config: &AppConfig) {
             let _segments = generate_segments(tlen as usize, qlen as usize, config);
 
             ((target_name, tlen), (query_name, qlen))
-        }).collect();
-
+        })
+        .collect();
 }

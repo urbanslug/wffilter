@@ -31,11 +31,11 @@ impl AppConfig {
         penalties: Option<Penalties>,
         adapt: bool,
         verbosity_level: u8,
-
     ) -> Self {
         let penalties = match penalties {
             Some(p) => p,
-            _ => Penalties { // default penalties
+            _ => Penalties {
+                // default penalties
                 mismatch: 1,
                 matches: 0,
                 gap_open: 1,
