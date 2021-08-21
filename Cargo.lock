@@ -502,6 +502,7 @@ dependencies = [
  "chrono",
  "clap",
  "coitrees",
+ "indicatif",
  "rayon",
  "wflambda-rs",
 ]

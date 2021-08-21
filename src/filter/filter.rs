@@ -1,4 +1,5 @@
 use coitrees::{COITree, IntervalNode};
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use std::collections::HashSet;
 use wflambda_rs as wflambda;
@@ -229,22 +230,159 @@ pub fn _run_align(
     (text_lines, query_lines)
 }
 
-pub fn filter(_index: &Index, paf: &paf::PAF, config: &AppConfig) {
+fn run_aln(
+    segments: &Vec<Segment>,
+    index: &Index,
+    target_name: &str,
+    query_name: &str,
+    wflambda_config: &wflambda::Config,
+) {
+    let query_index: &COITree<PafMetadata, u32> = &index.query_index;
+    let target_index: &COITree<PafMetadata, u32> = &index.target_index;
+
+    let mut overlaps: HashSet<QueryResult> = HashSet::new();
+    let mut matching_regions: Vec<MatchRegion> = Vec::new();
+
+    for segment in segments {
+        let ((tstart, tstop), (qstart, qstop)) = *segment;
+
+        let mut match_lambda = |v: &mut usize, h: &mut usize| -> bool {
+            // We are matching segments that are the size of segment_length
+            // add v and h by qstart and tstart to make up for the offset created by the segment
+            // we are basically doing position in the segment + position of the segment
+            let v_start = (*v + qstart) as i32;
+            let h_start = (*h + tstart) as i32;
+
+            let v_stop = (*v + qstop) as i32;
+            let h_stop = (*h + tstop) as i32;
+
+            *v = v_stop as usize;
+            *h = h_stop as usize;
+
+            let mut query_cache: HashSet<QueryResult> = HashSet::new();
+            let mut target_cache: HashSet<QueryResult> = HashSet::new();
+
+            let handle_targets = |i: &IntervalNode<PafMetadata, u32>| {
+                if i.metadata.name != target_name {
+                    return;
+                }
+
+                let res = QueryResult {
+                    line: i.metadata.line_num,
+
+                    sequence_start: i.first,
+                    sequence_stop: i.last,
+
+                    segment_qstart: qstart,
+                    segment_qstop: qstop,
+                    segment_tstart: tstart,
+                    segment_tstop: tstop,
+                };
+
+                target_cache.insert(res);
+            };
+
+            let handle_queries = |i: &IntervalNode<PafMetadata, u32>| {
+                if i.metadata.name != query_name {
+                    return;
+                }
+
+                let res = QueryResult {
+                    line: i.metadata.line_num,
+
+                    sequence_start: i.first,
+                    sequence_stop: i.last,
+
+                    segment_qstart: qstart,
+                    segment_qstop: qstop,
+                    segment_tstart: tstart,
+                    segment_tstop: tstop,
+                };
+
+                query_cache.insert(res);
+            };
+
+            target_index.query(h_start, h_stop, handle_targets);
+            query_index.query(v_start, v_stop, handle_queries);
+
+            let intersect: HashSet<&QueryResult> = target_cache
+                .intersection(&query_cache)
+                .map(|x: &QueryResult| {
+                    // collect all the intersections
+                    overlaps.insert(x.clone());
+                    x
+                })
+                .collect();
+
+            // if the intersection is empty then there isn't a match
+            !intersect.is_empty()
+        };
+
+        #[allow(unused_variables)]
+        let mut traceback_lambda =
+            |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| {
+                matching_regions.push(MatchRegion {
+                    query_start: q_start as usize,
+                    query_stop: q_stop as usize,
+                    text_start: t_start as usize,
+                    text_stop: t_stop as usize,
+                });
+            };
+
+        let tlen = tstop - tstart;
+        let qlen = qstop - qstart;
+
+        wflambda::wf_align(
+            tlen,
+            qlen,
+            &wflambda_config,
+            &mut match_lambda,
+            &mut traceback_lambda,
+        );
+    }
+}
+
+pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) {
+    let verbosity = config.verbosity_level;
+
     let alignment_pairs: HashSet<paf::AlignmentPair> = paf.get_unique_alignments();
     let metadata = paf.get_metadata();
 
-    let _alignment_pairs: Vec<((&str, u32), (&str, u32))> = alignment_pairs
+    if verbosity > 1 {
+        eprintln!(
+            "[wffilter::filter::filter] aligning {} pairs",
+            alignment_pairs.len()
+        );
+    }
+
+    let wflambda_config = wflambda::Config {
+        adapt: config.adapt,
+        segment_length: config.segment_length as u32, // TODO: remove
+        step_size: 500,                               // TODO: remove
+        thread_count: config.thread_count,
+        verbosity: config.verbosity_level,
+    };
+
+    let progress_bar = ProgressBar::new(alignment_pairs.len() as u64);
+    let template = "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} pairs ({eta_precise})";
+    let progress_style = ProgressStyle::default_bar()
+        .template(template)
+        .progress_chars("=> ");
+    progress_bar.set_style(progress_style);
+
+    alignment_pairs
         .par_iter()
-        .map(|alignment_pair: &paf::AlignmentPair| {
+        .for_each(|alignment_pair: &paf::AlignmentPair| {
             let target_name = &alignment_pair.target_name[..];
             let query_name = &alignment_pair.query_name[..];
 
             let tlen = metadata.get(target_name).unwrap().length;
             let qlen = metadata.get(query_name).unwrap().length;
 
-            let _segments = generate_segments(tlen as usize, qlen as usize, config);
+            let segments = generate_segments(tlen as usize, qlen as usize, config);
 
-            ((target_name, tlen), (query_name, qlen))
-        })
-        .collect();
+            run_aln(&segments, index, target_name, query_name, &wflambda_config);
+
+            progress_bar.inc(1);
+        });
 }
