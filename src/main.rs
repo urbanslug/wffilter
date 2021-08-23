@@ -68,7 +68,7 @@ fn main() {
         eprintln!("[wffilter::main] filtering");
     }
 
-    filter::filter::filter(&index, &paf, &config);
+    let filtered_lines = filter::filter::filter(&index, &paf, &config);
 
     if verbosity > 1 {
         eprintln!(
@@ -77,30 +77,22 @@ fn main() {
         )
     }
 
-    // generate segments
-    // config
-    // let tlen: usize = 60 as usize;
-    // let qlen: usize = 60 as usize;
-    // let segment_length: usize = 10;
-    // let segments = filter::filter::generate_segments(tlen, qlen, segment_length);
-    // println!("The segments are:\n {:?}\n\n", segments);
-    // eprintln!("The segments are");
-    // utils::pretty_print_vec(&segments, 3);
-    // eprintln!();
+    // ------------
+    //     Copy over lines
+    // ------------
+    let now = Instant::now();
+    if verbosity > 0 {
+        eprintln!("[wffilter::main] copying filtered lines");
+    }
 
-    // build Index
-    // let index = filter::filter::build_index();
-    // let (text_lines, query_lines) = filter::filter::run_align(&segments, &index);
+    io::copy_filtered(&config.input_paf[..], &filtered_lines);
 
-    // query the index
-    // are there matches in this segment?
-    // let _overlap: Vec<&filter::types::QueryResult> = text_lines.intersection(&query_lines).collect();
-    // eprintln!("Number of results: {}", overlap.len());
-    // eprintln!();
-
-    // for x in overlap.iter() {
-    //   println!("{}", x);
-    //}
+    if verbosity > 1 {
+        eprintln!(
+            "[wffilter::main] done copying. Time taken {} seconds",
+            now.elapsed().as_millis() as f64 / 1000.0
+        )
+    }
 
     if verbosity > 1 {
         eprintln!(

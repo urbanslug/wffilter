@@ -1,5 +1,5 @@
 use coitrees::{COITree, IntervalNode};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use std::collections::HashSet;
 use wflambda_rs as wflambda;
@@ -236,12 +236,10 @@ fn run_aln(
     target_name: &str,
     query_name: &str,
     wflambda_config: &wflambda::Config,
+    matching_regions: &mut HashSet<QueryResult>,
 ) {
     let query_index: &COITree<PafMetadata, u32> = &index.query_index;
     let target_index: &COITree<PafMetadata, u32> = &index.target_index;
-
-    let mut overlaps: HashSet<QueryResult> = HashSet::new();
-    let mut matching_regions: Vec<MatchRegion> = Vec::new();
 
     for segment in segments {
         let ((tstart, tstop), (qstart, qstop)) = *segment;
@@ -305,27 +303,60 @@ fn run_aln(
             target_index.query(h_start, h_stop, handle_targets);
             query_index.query(v_start, v_stop, handle_queries);
 
-            let intersect: HashSet<&QueryResult> = target_cache
-                .intersection(&query_cache)
-                .map(|x: &QueryResult| {
-                    // collect all the intersections
-                    overlaps.insert(x.clone());
-                    x
-                })
-                .collect();
-
-            // if the intersection is empty then there isn't a match
-            !intersect.is_empty()
+            target_cache.intersection(&query_cache).next().is_some()
         };
 
         #[allow(unused_variables)]
         let mut traceback_lambda =
             |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| {
-                matching_regions.push(MatchRegion {
-                    query_start: q_start as usize,
-                    query_stop: q_stop as usize,
-                    text_start: t_start as usize,
-                    text_stop: t_stop as usize,
+                let mut query_cache: HashSet<QueryResult> = HashSet::new();
+                let mut target_cache: HashSet<QueryResult> = HashSet::new();
+
+                let handle_targets = |i: &IntervalNode<PafMetadata, u32>| {
+                    if i.metadata.name != target_name {
+                        return;
+                    }
+
+                    let res = QueryResult {
+                        line: i.metadata.line_num,
+
+                        sequence_start: i.first,
+                        sequence_stop: i.last,
+
+                        segment_qstart: qstart,
+                        segment_qstop: qstop,
+                        segment_tstart: tstart,
+                        segment_tstop: tstop,
+                    };
+
+                    target_cache.insert(res);
+                };
+
+                let handle_queries = |i: &IntervalNode<PafMetadata, u32>| {
+                    if i.metadata.name != query_name {
+                        return;
+                    }
+
+                    let res = QueryResult {
+                        line: i.metadata.line_num,
+
+                        sequence_start: i.first,
+                        sequence_stop: i.last,
+
+                        segment_qstart: qstart,
+                        segment_qstop: qstop,
+                        segment_tstart: tstart,
+                        segment_tstop: tstop,
+                    };
+
+                    query_cache.insert(res);
+                };
+
+                target_index.query(t_start, t_stop, handle_targets);
+                query_index.query(q_start, q_stop, handle_queries);
+
+                target_cache.intersection(&query_cache).for_each(|match_| {
+                    matching_regions.insert(*match_);
                 });
             };
 
@@ -342,7 +373,7 @@ fn run_aln(
     }
 }
 
-pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) {
+pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
     let verbosity = config.verbosity_level;
 
     let alignment_pairs: HashSet<paf::AlignmentPair> = paf.get_unique_alignments();
@@ -363,16 +394,19 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) {
         verbosity: config.verbosity_level,
     };
 
+    // Progress bar
     let progress_bar = ProgressBar::new(alignment_pairs.len() as u64);
-    let template = "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} pairs ({eta_precise})";
+    let template = "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}]  {pos:>7}/{len:7}  ({eta_precise})";
     let progress_style = ProgressStyle::default_bar()
         .template(template)
         .progress_chars("=> ");
     progress_bar.set_style(progress_style);
 
-    alignment_pairs
+    // Filter all the alignments
+    let all_matching_regions: Vec<HashSet<QueryResult>> = alignment_pairs
         .par_iter()
-        .for_each(|alignment_pair: &paf::AlignmentPair| {
+        .progress_with(progress_bar)
+        .map(|alignment_pair: &paf::AlignmentPair| {
             let target_name = &alignment_pair.target_name[..];
             let query_name = &alignment_pair.query_name[..];
 
@@ -381,8 +415,42 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) {
 
             let segments = generate_segments(tlen as usize, qlen as usize, config);
 
-            run_aln(&segments, index, target_name, query_name, &wflambda_config);
+            let mut matching_regions: HashSet<QueryResult> = HashSet::new();
 
-            progress_bar.inc(1);
-        });
+            run_aln(
+                &segments,
+                index,
+                target_name,
+                query_name,
+                &wflambda_config,
+                &mut matching_regions,
+            );
+
+            matching_regions
+        })
+        .collect();
+
+    // Extract the necessary lines
+    if all_matching_regions.is_empty() {
+        if verbosity > 1 {
+            eprintln!("[wffilter::filter::filter] Everything got filtered out");
+        }
+
+        return Vec::new();
+    }
+
+    let mut lines: Vec<usize> = all_matching_regions
+        .iter()
+        .map(|e: &HashSet<QueryResult>| {
+            e.iter()
+                .map(|x: &QueryResult| x.line as usize)
+                .collect::<Vec<usize>>()
+        })
+        .flatten()
+        .collect();
+
+    lines.sort();
+    lines.dedup();
+
+    lines
 }

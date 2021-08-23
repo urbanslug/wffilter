@@ -22,6 +22,7 @@ pub struct Index {
 pub struct MatchRegion {
     pub query_start: usize,
     pub query_stop: usize,
+
     pub text_start: usize,
     pub text_stop: usize,
 }
