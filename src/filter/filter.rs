@@ -50,6 +50,9 @@ fn run_aln(
     for segment in segments {
         let ((tstart, tstop), (qstart, qstop)) = *segment;
 
+        let mut match_matches: HashSet<QueryResult> = HashSet::new();
+        let mut traceback_matches: HashSet<QueryResult> = HashSet::new();
+
         let mut match_lambda = |v: &mut usize, h: &mut usize| -> bool {
             // We are matching segments that are the size of segment_length
             // add v and h by qstart and tstart to make up for the offset created by the segment
@@ -159,10 +162,6 @@ fn run_aln(
 
                 target_index.query(t_start, t_stop, handle_targets);
                 query_index.query(q_start, q_stop, handle_queries);
-
-                target_cache.intersection(&query_cache).for_each(|match_| {
-                    matching_regions.insert(*match_);
-                });
             };
 
         let tlen = tstop - tstart;
@@ -175,6 +174,10 @@ fn run_aln(
             &mut match_lambda,
             &mut traceback_lambda,
         );
+
+        traceback_matches.intersection(&match_matches).for_each(|e| {
+            matching_regions.insert(*e);
+        })
     }
 }
 

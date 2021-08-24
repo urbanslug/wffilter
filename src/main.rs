@@ -96,7 +96,7 @@ fn main() {
 
     if verbosity > 1 {
         eprintln!(
-            "[wffilter::main] Done. Total time taken {} seconds",
+            "[wffilter::main] all done. Total time taken {} seconds",
             total_time.elapsed().as_millis() as f64 / 1000.0
         )
     }
