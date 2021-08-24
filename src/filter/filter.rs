@@ -112,6 +112,13 @@ fn run_aln(
             target_index.query(h_start, h_stop, handle_targets);
             query_index.query(v_start, v_stop, handle_queries);
 
+            target_cache
+                .intersection(&query_cache)
+                .for_each(|matches: &QueryResult| {
+                    match_matches.insert(*matches);
+                    // println!("match\t{}\t{}\t{}\t{}\t{}\t{}", target_name, query_name, v_start, v_stop, h_start, h_stop);
+                });
+
             target_cache.intersection(&query_cache).next().is_some()
         };
 
@@ -162,6 +169,13 @@ fn run_aln(
 
                 target_index.query(t_start, t_stop, handle_targets);
                 query_index.query(q_start, q_stop, handle_queries);
+
+                target_cache
+                    .intersection(&query_cache)
+                    .for_each(|match_| {
+                        // println!("traceback\t{}\t{}\t{}\t{}\t{}\t{}", target_name, query_name, q_start, q_stop, t_start, t_stop);
+                        traceback_matches.insert(*match_);
+                });
             };
 
         let tlen = tstop - tstart;

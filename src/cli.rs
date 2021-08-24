@@ -25,7 +25,7 @@ pub fn start() -> types::AppConfig {
                 .short("s")
                 .long("segment-length")
                 .multiple(false)
-                .default_value("256")
+                .default_value("10")
                 .help("Segment length for aligning"),
         )
         .arg(
