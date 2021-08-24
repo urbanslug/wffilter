@@ -77,15 +77,15 @@ fn main() {
         )
     }
 
-    // ------------
-    //     Copy over lines
-    // ------------
+    // --------------------------
+    //     Generate filtered PAF
+    // --------------------------
     let now = Instant::now();
     if verbosity > 0 {
         eprintln!("[wffilter::main] copying filtered lines");
     }
 
-    io::copy_filtered(&config.input_paf[..], &filtered_lines);
+    io::copy_filtered(paf_file_path, &filtered_lines);
 
     if verbosity > 1 {
         eprintln!(
