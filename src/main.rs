@@ -9,14 +9,19 @@ use std::time::Instant;
 fn main() {
     let total_time = Instant::now();
 
-    // ------------
-    //    CLI
-    // ------------
+    // -----------------
+    //    CLI & Config
+    // -----------------
 
     // Parse CLI args
     let config: types::AppConfig = cli::start();
     let paf_file_path: &str = &config.input_paf[..];
     let verbosity = config.verbosity_level;
+
+    // Initialization of the global thread pool happens exactly once.
+    // Once started, the configuration cannot be changed.
+    // Therefore, if you call build_global a second time, it will return an error.
+    rayon::ThreadPoolBuilder::new().num_threads(config.thread_count).build_global().unwrap();
 
     // TODO: remove
     if verbosity > 1 {

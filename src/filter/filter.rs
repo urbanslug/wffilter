@@ -214,6 +214,12 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
         step_size: 500,                               // TODO: remove
         thread_count: config.thread_count,
         verbosity: config.verbosity_level,
+        penalties: wflambda::Penalties {
+            mismatch: config.penalties.mismatch,
+            matches: config.penalties.matches,
+            gap_open: config.penalties.matches,
+            gap_extend: config.penalties.gap_extend,
+        },
     };
 
     // Progress bar
