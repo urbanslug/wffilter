@@ -29,6 +29,30 @@ pub fn start() -> types::AppConfig {
                 .help("Segment length for aligning"),
         )
         .arg(
+            Arg::with_name("mismatch")
+                .short("x")
+                .long("mismatch")
+                .multiple(false)
+                .default_value("1")
+                .help("Mismatch score"),
+        )
+        .arg(
+            Arg::with_name("gap_open")
+                .short("o")
+                .long("gap-penalties")
+                .multiple(false)
+                .default_value("1")
+                .help("Gap opening score"),
+        )
+        .arg(
+            Arg::with_name("gap_extend")
+                .short("e")
+                .long("gap-extend")
+                .multiple(false)
+                .default_value("1")
+                .help("Gap extension score"),
+        )
+        .arg(
             Arg::with_name("thread_count")
                 .short("t")
                 .long("thread-count")
@@ -65,12 +89,33 @@ pub fn start() -> types::AppConfig {
         .unwrap();
     let adapt: bool = matches.is_present("adapt");
     let verbosity_level: u8 = matches.occurrences_of("v") as u8;
+    let mismatch = matches
+        .value_of("mismatch")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+    let gap_extend = matches
+        .value_of("gap_extend")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+    let gap_open = matches
+        .value_of("gap_open")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+    let penalties = types::Penalties {
+        mismatch,
+        matches: 0,
+        gap_open,
+        gap_extend,
+    };
 
     types::AppConfig::new(
         paf_file_path,
         segment_length,
         thread_count,
-        None, // TODO: implement penalties
+        Some(penalties),
         adapt,
         verbosity_level,
     )
