@@ -1,7 +1,7 @@
 [package]
 name = "wffilter"
-version = "0.1.0"
-authors = ["Njagi Mwaniki <njagi@urbanslug.com>"]
+version = "0.0.1-alpha"
+authors = ["Njagi Mwaniki <njagi+bio@njagi.me>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
