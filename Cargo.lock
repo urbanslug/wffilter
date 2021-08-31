@@ -498,7 +498,7 @@ checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wffilter"
-version = "0.1.0"
+version = "0.0.1-alpha"
 dependencies = [
  "chrono",
  "clap",
@@ -510,8 +510,8 @@ dependencies = [
 
 [[package]]
 name = "wflambda-rs"
-version = "0.1.0"
-source = "git+https://github.com/urbanslug/wflambda-rs#71f79608f2b241ab2fca9d4fa21d4adcf424a5ff"
+version = "0.0.1-alpha"
+source = "git+https://github.com/urbanslug/wflambda-rs#af6b3f9a28c30e1870c1ef864784f7829fd50df6"
 dependencies = [
  "indicatif",
  "num",

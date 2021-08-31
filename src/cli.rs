@@ -33,6 +33,7 @@ pub fn start() -> types::AppConfig {
                 .short("x")
                 .long("mismatch")
                 .multiple(false)
+                .hidden(true)
                 .default_value("1")
                 .help("Mismatch score"),
         )
@@ -41,6 +42,7 @@ pub fn start() -> types::AppConfig {
                 .short("o")
                 .long("gap-penalties")
                 .multiple(false)
+                .hidden(true)
                 .default_value("1")
                 .help("Gap opening score"),
         )
@@ -49,6 +51,7 @@ pub fn start() -> types::AppConfig {
                 .short("e")
                 .long("gap-extend")
                 .multiple(false)
+                .hidden(true)
                 .default_value("1")
                 .help("Gap extension score"),
         )
