@@ -39,9 +39,6 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -e, --gap-extend <gap_extend>            Gap extension score [default: 1]
-    -o, --gap-penalties <gap_open>           Gap opening score [default: 1]
-    -x, --mismatch <mismatch>                Mismatch score [default: 1]
     -s, --segment-length <segment_length>    Segment length for aligning [default: 10]
     -t, --thread-count <thread_count>        Number of threads to use [default: 8]
 

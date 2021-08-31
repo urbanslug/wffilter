@@ -2,10 +2,10 @@ use chrono::{DateTime, Local};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Penalties {
-    pub mismatch: u64,
-    pub matches: u64,
-    pub gap_open: u64,
-    pub gap_extend: u64,
+    pub mismatch: u8,
+    pub matches: u8,
+    pub gap_open: u8,
+    pub gap_extend: u8,
 }
 
 #[derive(Debug)]

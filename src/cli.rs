@@ -92,17 +92,17 @@ pub fn start() -> types::AppConfig {
     let mismatch = matches
         .value_of("mismatch")
         .unwrap()
-        .parse::<u64>()
+        .parse::<u8>()
         .unwrap();
     let gap_extend = matches
         .value_of("gap_extend")
         .unwrap()
-        .parse::<u64>()
+        .parse::<u8>()
         .unwrap();
     let gap_open = matches
         .value_of("gap_open")
         .unwrap()
-        .parse::<u64>()
+        .parse::<u8>()
         .unwrap();
     let penalties = types::Penalties {
         mismatch,

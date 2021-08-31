@@ -41,7 +41,7 @@ fn main() {
     let paf = paf::PAF::from_file(paf_file_path);
     if verbosity > 1 {
         eprintln!(
-            "[wffilter::main] done parsing PAF. Time taken {} seconds",
+            "[wffilter::main] done parsing PAF. Time taken {} seconds.",
             now.elapsed().as_millis() as f64 / 1000.0
         )
     }
@@ -60,7 +60,7 @@ fn main() {
 
     if verbosity > 1 {
         eprintln!(
-            "[wffilter::main] done indexing. Time taken {} seconds",
+            "[wffilter::main] done indexing. Time taken {} seconds.",
             now.elapsed().as_millis() as f64 / 1000.0
         )
     }
@@ -77,7 +77,7 @@ fn main() {
 
     if verbosity > 1 {
         eprintln!(
-            "[wffilter::main] done filtering. Time taken {} seconds",
+            "[wffilter::main] done filtering. Time taken {} seconds.",
             now.elapsed().as_millis() as f64 / 1000.0
         )
     }
@@ -94,14 +94,14 @@ fn main() {
 
     if verbosity > 1 {
         eprintln!(
-            "[wffilter::main] done copying. Time taken {} seconds",
+            "[wffilter::main] done copying. Time taken {} seconds.",
             now.elapsed().as_millis() as f64 / 1000.0
         )
     }
 
     if verbosity > 1 {
         eprintln!(
-            "[wffilter::main] all done. Total time taken {} seconds",
+            "[wffilter::main] all done. Total time taken {} seconds.",
             total_time.elapsed().as_millis() as f64 / 1000.0
         )
     }
