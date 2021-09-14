@@ -21,6 +21,14 @@ pub fn start() -> types::AppConfig {
                 .help("Path to input PAF file"),
         )
         .arg(
+            Arg::with_name("mashmap_file")
+                .short("m")
+                .long("mashmap_file")
+                .value_name("FILE")
+                .help("Path to output file from mashmap")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("segment_length")
                 .short("s")
                 .long("segment-length")
@@ -80,6 +88,7 @@ pub fn start() -> types::AppConfig {
 
     // Gets a value for config if supplied by user, or defaults to "default.conf"
     let paf_file_path: &str = matches.value_of("input_paf").unwrap();
+    let mashmap_file_path: Option<&str> = matches.value_of("mashmap_file");
     let segment_length: usize = matches
         .value_of("segment_length")
         .unwrap()
@@ -92,21 +101,13 @@ pub fn start() -> types::AppConfig {
         .unwrap();
     let adapt: bool = matches.is_present("adapt");
     let verbosity_level: u8 = matches.occurrences_of("v") as u8;
-    let mismatch = matches
-        .value_of("mismatch")
-        .unwrap()
-        .parse::<u8>()
-        .unwrap();
+    let mismatch = matches.value_of("mismatch").unwrap().parse::<u8>().unwrap();
     let gap_extend = matches
         .value_of("gap_extend")
         .unwrap()
         .parse::<u8>()
         .unwrap();
-    let gap_open = matches
-        .value_of("gap_open")
-        .unwrap()
-        .parse::<u8>()
-        .unwrap();
+    let gap_open = matches.value_of("gap_open").unwrap().parse::<u8>().unwrap();
     let penalties = types::Penalties {
         mismatch,
         matches: 0,
@@ -116,6 +117,7 @@ pub fn start() -> types::AppConfig {
 
     types::AppConfig::new(
         paf_file_path,
+        mashmap_file_path,
         segment_length,
         thread_count,
         Some(penalties),

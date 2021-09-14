@@ -94,6 +94,16 @@ pub enum Strand {
     Reverse,
 }
 
+impl Strand {
+    pub fn from_char(c: char) -> Strand {
+        if '+' == c {
+            Strand::Forward
+        } else {
+            Strand::Reverse
+        }
+    }
+}
+
 impl fmt::Display for Strand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let x: char = if *self == Strand::Forward { '+' } else { '-' };

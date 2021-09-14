@@ -1,6 +1,7 @@
 mod cli;
 mod filter;
 mod io;
+mod mashmap;
 mod paf;
 mod types;
 
@@ -21,11 +22,37 @@ fn main() {
     // Initialization of the global thread pool happens exactly once.
     // Once started, the configuration cannot be changed.
     // Therefore, if you call build_global a second time, it will return an error.
-    rayon::ThreadPoolBuilder::new().num_threads(config.thread_count).build_global().unwrap();
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(config.thread_count)
+        .build_global()
+        .unwrap();
 
     // TODO: remove
     if verbosity > 1 {
         eprintln!("{:#?}", config)
+    }
+
+    // ------------
+    //     Mashmap
+    // ------------
+    if config.mashmap_filepath.is_some() {
+        let foo: Option<&String> = config.mashmap_filepath.as_ref();
+        let mashmap_file_path: &str = &foo.unwrap()[..];
+        let now = Instant::now();
+        if verbosity > 0 {
+            eprintln!(
+                "[wffilter::main] parsing mashmap output: {}",
+                mashmap_file_path
+            );
+        }
+
+        let _mashmap: mashmap::MashMapOutput = mashmap::MashMapOutput::from_file(paf_file_path);
+        if verbosity > 1 {
+            eprintln!(
+                "[wffilter::main] done parsing mashmap output. Time taken {} seconds.",
+                now.elapsed().as_millis() as f64 / 1000.0
+            )
+        }
     }
 
     // ------------

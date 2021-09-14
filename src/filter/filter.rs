@@ -35,7 +35,6 @@ pub fn generate_segments(tlen: usize, qlen: usize, config: &AppConfig) -> Vec<Se
     segments
 }
 
-
 fn run_aln(
     segments: &Vec<Segment>,
     index: &Index,
@@ -170,11 +169,9 @@ fn run_aln(
                 target_index.query(t_start, t_stop, handle_targets);
                 query_index.query(q_start, q_stop, handle_queries);
 
-                target_cache
-                    .intersection(&query_cache)
-                    .for_each(|match_| {
-                        // println!("traceback\t{}\t{}\t{}\t{}\t{}\t{}", target_name, query_name, q_start, q_stop, t_start, t_stop);
-                        traceback_matches.insert(*match_);
+                target_cache.intersection(&query_cache).for_each(|match_| {
+                    // println!("traceback\t{}\t{}\t{}\t{}\t{}\t{}", target_name, query_name, q_start, q_stop, t_start, t_stop);
+                    traceback_matches.insert(*match_);
                 });
             };
 
@@ -189,9 +186,11 @@ fn run_aln(
             &mut traceback_lambda,
         );
 
-        traceback_matches.intersection(&match_matches).for_each(|e| {
-            matching_regions.insert(*e);
-        })
+        traceback_matches
+            .intersection(&match_matches)
+            .for_each(|e| {
+                matching_regions.insert(*e);
+            })
     }
 }
 
@@ -270,7 +269,10 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
     }
 
     let extract_lines = |query_results: &HashSet<QueryResult>| -> Vec<usize> {
-        query_results.iter().map(|query_restult: &QueryResult| query_restult.line as usize).collect()
+        query_results
+            .iter()
+            .map(|query_restult: &QueryResult| query_restult.line as usize)
+            .collect()
     };
 
     let mut lines: Vec<usize> = all_matching_regions

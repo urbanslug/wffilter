@@ -12,6 +12,8 @@ pub struct Penalties {
 pub struct AppConfig {
     pub input_paf: String,
 
+    pub mashmap_filepath: Option<String>,
+
     pub segment_length: usize,
     pub step: bool, // Use overlapping segments or not? Set to true everywhere for now
 
@@ -26,6 +28,7 @@ impl AppConfig {
     #[allow(dead_code)] // TODO: exists for testing purposes
     pub fn new(
         paf_filepath: &str,
+        mashmap_filepath_: Option<&str>,
         segment_length: usize,
         thread_count: usize,
         penalties: Option<Penalties>,
@@ -43,9 +46,15 @@ impl AppConfig {
             },
         };
 
+        let mashmap_filepath: Option<String> = match mashmap_filepath_ {
+            Some(fp) => Some(String::from(fp)),
+            _ => None,
+        };
+
         AppConfig {
             verbosity_level,
             input_paf: String::from(paf_filepath),
+            mashmap_filepath,
             segment_length,
             step: true,
             thread_count,

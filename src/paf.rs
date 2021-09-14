@@ -51,9 +51,9 @@ pub struct PafAlignment {
     target_length: u32,        // Target sequence length
     pub target_start: u32,     // Target start on original strand (0-based)
     pub target_end: u32,       // Target end on original strand (0-based)
-    // residue_matches: u32,  // Number of residue matches
-    // block_len: u32,        // Alignment block length
-    // quality: String,       // Mapping quality (0-255; 255 for missing)
+    // residue_matches: u32,   // Number of residue matches
+    // block_len: u32,         // Alignment block length
+    // quality: String,        // Mapping quality (0-255; 255 for missing)
     pub cigar: String, // SAM style CIGAR string TODO: specify CIGAR version
 }
 
