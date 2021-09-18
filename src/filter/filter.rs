@@ -1,12 +1,16 @@
 use coitrees::{COITree, IntervalNode};
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle, MultiProgress};
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::collections::HashMap;
+use console::style;
+
 use wflambda_rs as wflambda;
 
 use super::types::*;
 use crate::paf;
 use crate::types::AppConfig;
+use crate::mashmap;
 
 pub fn generate_segments(tlen: usize, qlen: usize, config: &AppConfig) -> Vec<Segment> {
     let segment_length: usize = config.segment_length;
@@ -42,11 +46,12 @@ fn run_aln(
     query_name: &str,
     wflambda_config: &wflambda::Config,
     matching_regions: &mut HashSet<QueryResult>,
+    bar: Option<&ProgressBar>,
 ) {
     let query_index: &COITree<PafMetadata, u32> = &index.query_index;
     let target_index: &COITree<PafMetadata, u32> = &index.target_index;
 
-    for segment in segments {
+    for (_index, segment) in segments.iter().enumerate() {
         let ((tstart, tstop), (qstart, qstop)) = *segment;
 
         let mut match_matches: HashSet<QueryResult> = HashSet::new();
@@ -190,9 +195,15 @@ fn run_aln(
             .intersection(&match_matches)
             .for_each(|e| {
                 matching_regions.insert(*e);
-            })
+            });
+
+        match bar {
+            Some(progress) => progress.inc(1),
+            _ => (),
+        }
     }
 }
+
 
 pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
     let verbosity = config.verbosity_level;
@@ -223,7 +234,7 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
 
     // Progress bar
     let progress_bar = ProgressBar::new(alignment_pairs.len() as u64);
-    let template = "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}]  {pos:>7}/{len:7}  ({eta_precise})";
+    let template = "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}]  {pos:>7}/{len:7}  {msg} segments ({eta_precise})";
     let progress_style = ProgressStyle::default_bar()
         .template(template)
         .progress_chars("=> ");
@@ -232,7 +243,6 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
     // Filter all the alignments
     let all_matching_regions: Vec<HashSet<QueryResult>> = alignment_pairs
         .par_iter()
-        .progress_with(progress_bar)
         .map(|alignment_pair: &paf::AlignmentPair| {
             let target_name = &alignment_pair.target_name[..];
             let query_name = &alignment_pair.query_name[..];
@@ -241,6 +251,9 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
             let qlen = metadata.get(query_name).unwrap().length;
 
             let segments = generate_segments(tlen as usize, qlen as usize, config);
+
+            let x = format!("{}", segments.len());
+            progress_bar.set_message(x);
 
             let mut matching_regions: HashSet<QueryResult> = HashSet::new();
 
@@ -251,11 +264,121 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
                 query_name,
                 &wflambda_config,
                 &mut matching_regions,
+                None,
             );
+
+            progress_bar.inc(1);
 
             matching_regions
         })
         .collect();
+
+    // Extract the necessary lines
+    if all_matching_regions.is_empty() {
+        if verbosity > 1 {
+            eprintln!(
+                "[wffilter::filter::filter] Everything got filtered out. Output PAF will be empty"
+            );
+        }
+
+        return Vec::new();
+    }
+
+    let extract_lines = |query_results: &HashSet<QueryResult>| -> Vec<usize> {
+        query_results
+            .iter()
+            .map(|query_restult: &QueryResult| query_restult.line as usize)
+            .collect()
+    };
+
+    let mut lines: Vec<usize> = all_matching_regions
+        .iter()
+        .map(extract_lines)
+        .flatten()
+        .collect();
+
+    lines.sort();
+    lines.dedup();
+
+    lines
+}
+
+pub fn filter_mashmap(
+    mashmap_mappings: Option<&mashmap::MashMapOutput>,
+    index: &Index,
+    paf: &paf::PAF,
+    config: &AppConfig,
+) -> Vec<usize> {
+    let verbosity = config.verbosity_level;
+
+    let mashmap_mappings = match mashmap_mappings {
+        Some(m) => m,
+        _ => return Vec::new(),
+    };
+
+    let unique_mappings: HashMap<mashmap::AlignmentPair, HashSet<mashmap::AlignmentBounds>> =
+        mashmap_mappings.gen_unique_mappings();
+    let mappings_count = unique_mappings.len();
+
+    if verbosity > 1 {
+        eprintln!(
+            "[wffilter::filter::filter] aligning {} pairs",
+            style(mappings_count).cyan()
+        );
+    }
+
+    let wflambda_config = wflambda::Config {
+        adapt: config.adapt,
+        segment_length: config.segment_length as u32, // TODO: remove
+        step_size: 500,                               // TODO: remove
+        thread_count: config.thread_count,
+        verbosity: config.verbosity_level,
+        penalties: wflambda::Penalties {
+            mismatch: config.penalties.mismatch,
+            matches: config.penalties.matches,
+            gap_open: config.penalties.matches,
+            gap_extend: config.penalties.gap_extend,
+        },
+    };
+
+    let mut all_matching_regions: Vec<HashSet<QueryResult>> = Vec::new();
+
+    for (alignment_pair, bounds) in unique_mappings {
+
+        let target_name = &alignment_pair.target[..];
+        let query_name = &alignment_pair.query[..];
+
+        if verbosity > 1 {
+            eprintln!("\t{} and {}", target_name, query_name);
+        }
+
+        for bound in bounds {
+            let tlen = bound.target_length;
+            let qlen = bound.query_length;
+
+            let segments = generate_segments(tlen as usize, qlen as usize, config);
+            let progress_bar = ProgressBar::new(segments.len() as u64);
+            let template = "\t{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({eta_precise})";
+            let progress_style = ProgressStyle::default_bar()
+                .template(template)
+                .progress_chars("=> ");
+            progress_bar.set_style(progress_style);
+
+            let mut matching_regions: HashSet<QueryResult> = HashSet::new();
+
+            run_aln(
+                &segments,
+                index,
+                target_name,
+                query_name,
+                &wflambda_config,
+                &mut matching_regions,
+                Some(&progress_bar),
+            );
+
+            all_matching_regions.push(matching_regions);
+        }
+    }
 
     // Extract the necessary lines
     if all_matching_regions.is_empty() {

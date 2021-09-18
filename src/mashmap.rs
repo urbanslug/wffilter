@@ -1,6 +1,10 @@
 use crate::filter::types;
 use crate::io;
 use std::str::FromStr;
+use std::collections::HashMap;
+use std::collections::HashSet;
+
+
 
 #[derive(Debug, PartialEq)]
 pub struct MashMapLine {
@@ -48,13 +52,64 @@ pub struct MashMapOutput {
     mappings: Vec<MashMapLine>,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct AlignmentPair {
+    pub query: String,
+    pub target: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct AlignmentBounds {
+    pub query_length: u32,
+    pub query_start: u32,
+    pub query_stop: u32,
+
+    pub target_length: u32,
+    pub target_start: u32,
+    pub target_stop: u32,
+}
+
 impl MashMapOutput {
     pub fn from_file(file_name: &str) -> Self {
         let lines: Vec<String> = io::read_file(&file_name[..]);
-
         let mappings: Vec<MashMapLine> = MashMapLine::from_lines(lines);
 
         Self { mappings }
+    }
+
+    // Go through all the mappings and get the start and stop positions of each
+    // query and target pair
+    pub fn gen_unique_mappings(&self) -> HashMap<AlignmentPair, HashSet<AlignmentBounds>> {
+        let mut unique_mappings: HashMap<AlignmentPair, HashSet<AlignmentBounds>> = HashMap::new();
+
+        for mapping in &self.mappings {
+            let query_target_pair = AlignmentPair {
+                query: mapping.query.clone(),
+                target: mapping.target.clone(),
+            };
+
+            let bounds = AlignmentBounds {
+                query_length: mapping.query_length,
+                query_start: mapping.query_start,
+                query_stop: mapping.query_stop,
+                target_length: mapping.target_length,
+                target_start: mapping.target_start,
+                target_stop: mapping.target_stop,
+            };
+
+            match unique_mappings.get_mut(&query_target_pair) {
+                Some(v) => { // update
+                    v.insert(bounds);
+                },
+                None => { // add new entry
+                    let mut baz: HashSet<AlignmentBounds> = HashSet::new();
+                    baz.insert(bounds);
+                    unique_mappings.insert(query_target_pair, baz);
+                }
+            }
+        }
+
+        unique_mappings
     }
 }
 
@@ -126,5 +181,13 @@ mod tests {
         let file2 = vec![aln2, aln3];
 
         assert_eq!(file1, file2);
+    }
+
+    #[test]
+    fn test_gen_unique_mappings() {
+        let lines: Vec<String> = TEST_MASHMAP_FILE.lines().map(|x| x.to_string()).collect();
+        let mappings = MashMapLine::from_lines(lines);
+
+
     }
 }

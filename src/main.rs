@@ -35,6 +35,8 @@ fn main() {
     // ------------
     //     Mashmap
     // ------------
+
+    let mut mashmap_mappings: Option<mashmap::MashMapOutput> = None;
     if config.mashmap_filepath.is_some() {
         let foo: Option<&String> = config.mashmap_filepath.as_ref();
         let mashmap_file_path: &str = &foo.unwrap()[..];
@@ -46,7 +48,7 @@ fn main() {
             );
         }
 
-        let _mashmap: mashmap::MashMapOutput = mashmap::MashMapOutput::from_file(paf_file_path);
+        mashmap_mappings = Some(mashmap::MashMapOutput::from_file(mashmap_file_path));
         if verbosity > 1 {
             eprintln!(
                 "[wffilter::main] done parsing mashmap output. Time taken {} seconds.",
@@ -95,12 +97,20 @@ fn main() {
     // ------------
     //     Filter
     // ------------
+
     let now = Instant::now();
     if verbosity > 0 {
         eprintln!("[wffilter::main] filtering");
     }
 
-    let filtered_lines = filter::filter::filter(&index, &paf, &config);
+    // todo: pass this to fns
+    let mut filtered_lines: Vec<usize>;
+
+    if config.mashmap_filepath.is_some() {
+        filtered_lines = filter::filter::filter_mashmap(mashmap_mappings.as_ref(), &index, &paf, &config);
+    } else {
+        filtered_lines = filter::filter::filter(&index, &paf, &config);
+    }
 
     if verbosity > 1 {
         eprintln!(
@@ -112,6 +122,7 @@ fn main() {
     // --------------------------
     //     Generate filtered PAF
     // --------------------------
+
     let now = Instant::now();
     if verbosity > 0 {
         eprintln!("[wffilter::main] copying filtered lines");
