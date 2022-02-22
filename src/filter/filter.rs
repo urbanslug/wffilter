@@ -5,14 +5,19 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 use console::style;
 
-use wflambda_rs as wflambda;
+use wflambda;
 
 use super::types::*;
 use crate::paf;
 use crate::types::AppConfig;
 use crate::mashmap;
 
-pub fn generate_segments(tlen: usize, qlen: usize, config: &AppConfig) -> Vec<Segment> {
+pub fn generate_segments(
+    tlen: usize,
+    qlen: usize,
+    config: &AppConfig
+) -> Vec<Segment>
+{
     let segment_length: usize = config.segment_length;
     let step_size = (segment_length as f64 / 2_f64).floor() as usize;
 
@@ -44,7 +49,7 @@ fn run_aln(
     index: &Index,
     target_name: &str,
     query_name: &str,
-    wflambda_config: &wflambda::Config,
+    wflambda_config: &wflambda::types::Config,
     matching_regions: &mut HashSet<QueryResult>,
     bar: Option<&ProgressBar>,
 ) {
@@ -57,18 +62,27 @@ fn run_aln(
         let mut match_matches: HashSet<QueryResult> = HashSet::new();
         let mut traceback_matches: HashSet<QueryResult> = HashSet::new();
 
-        let mut match_lambda = |v: &mut usize, h: &mut usize| -> bool {
+        let mut match_lambda = |v: &mut i32, h: &mut i32| -> bool {
+
+            if *v < 0 || *h < 0 {
+                return false;
+            }
+
+            // let v_idx = *v as usize;
+            // let h_idx = *h as usize;
+
+
             // We are matching segments that are the size of segment_length
             // add v and h by qstart and tstart to make up for the offset created by the segment
             // we are basically doing position in the segment + position of the segment
-            let v_start = (*v + qstart) as i32;
-            let h_start = (*h + tstart) as i32;
+            let v_start = *v + qstart as i32;
+            let h_start = *h + tstart as i32;
 
-            let v_stop = (*v + qstop) as i32;
-            let h_stop = (*h + tstop) as i32;
+            let v_stop = *v + qstop as i32;
+            let h_stop = *h + tstop as i32;
 
-            *v = v_stop as usize;
-            *h = h_stop as usize;
+            *v = v_stop;
+            *h = h_stop;
 
             let mut query_cache: HashSet<QueryResult> = HashSet::new();
             let mut target_cache: HashSet<QueryResult> = HashSet::new();
@@ -184,8 +198,8 @@ fn run_aln(
         let qlen = qstop - qstart;
 
         wflambda::wf_align(
-            tlen,
-            qlen,
+            tlen as u32,
+            qlen as u32,
             &wflambda_config,
             &mut match_lambda,
             &mut traceback_lambda,
@@ -204,8 +218,11 @@ fn run_aln(
     }
 }
 
-
-pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
+pub fn filter(
+    index: &Index,
+    paf: &paf::PAF,
+    config: &AppConfig
+) -> Vec<usize> {
     let verbosity = config.verbosity_level;
 
     let alignment_pairs: HashSet<paf::AlignmentPair> = paf.get_unique_alignments();
@@ -218,17 +235,14 @@ pub fn filter(index: &Index, paf: &paf::PAF, config: &AppConfig) -> Vec<usize> {
         );
     }
 
-    let wflambda_config = wflambda::Config {
+    let wflambda_config = wflambda::types::Config {
         adapt: config.adapt,
-        segment_length: config.segment_length as u32, // TODO: remove
-        step_size: 500,                               // TODO: remove
-        thread_count: config.thread_count,
         verbosity: config.verbosity_level,
-        penalties: wflambda::Penalties {
-            mismatch: config.penalties.mismatch,
-            matches: config.penalties.matches,
-            gap_open: config.penalties.matches,
-            gap_extend: config.penalties.gap_extend,
+        penalties: wflambda::types::Penalties {
+            mismatch: config.penalties.mismatch as i32,
+            matches: config.penalties.matches as i32,
+            gap_open: config.penalties.matches as i32,
+            gap_extend: config.penalties.gap_extend as i32,
         },
     };
 
@@ -327,17 +341,14 @@ pub fn filter_mashmap(
         );
     }
 
-    let wflambda_config = wflambda::Config {
+    let wflambda_config = wflambda::types::Config {
         adapt: config.adapt,
-        segment_length: config.segment_length as u32, // TODO: remove
-        step_size: 500,                               // TODO: remove
-        thread_count: config.thread_count,
         verbosity: config.verbosity_level,
-        penalties: wflambda::Penalties {
-            mismatch: config.penalties.mismatch,
-            matches: config.penalties.matches,
-            gap_open: config.penalties.matches,
-            gap_extend: config.penalties.gap_extend,
+        penalties: wflambda::types::Penalties {
+            mismatch: config.penalties.mismatch as i32,
+            matches: config.penalties.matches as i32,
+            gap_open: config.penalties.matches as i32,
+            gap_extend: config.penalties.gap_extend as i32,
         },
     };
 
